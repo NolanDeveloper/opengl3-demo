@@ -150,6 +150,9 @@ createCube(float size) {
         (Vec3) { s, -s, s },
     };
     Vec3 colors[8];
+    for (int i = 0; i < 8; ++i) {
+        colors[i] = (Vec3) { randomDouble(), randomDouble(), randomDouble() };
+    }
     GLuint indices[36] = {
         3, 2, 1, 3, 1, 0,
         0, 1, 5, 0, 5, 4,
@@ -209,7 +212,7 @@ display(void) {
     glUniform1f(hatchShader.lineGapLocation, 20);
     GLfloat lineWidth = fabs(sin(angle + 1.1)) * 3 + 1;
     glUniform1f(hatchShader.lineWidthLocation, lineWidth);
-    drawMesh(icosahedron);
+    drawMesh(cube);
 
     glUseProgram(solidShader.id);
     glUniformMatrix4fv(solidShader.projectionLocation,
@@ -219,9 +222,14 @@ display(void) {
     translation(&t, -1.5, 0, -3); mulm(&modelView, &modelView, &t);
     rotationY(&t, 3.1 * angle);   mulm(&modelView, &modelView, &t);
     rotationX(&t, 2 * angle);     mulm(&modelView, &modelView, &t);
+    scale(&t,
+        fabs(sin(angle)),
+        fabs(cos(angle + 1)),
+        fabs(cos(angle + 3) * sin(angle + 2)));
+    mulm(&modelView, &modelView, &t);
     glUniformMatrix4fv(hatchShader.modelViewLocation,
         1, GL_TRUE, (GLfloat *)&modelView);
-    drawMesh(cube);
+    drawMesh(icosahedron);
 
     glutSwapBuffers();
 }
