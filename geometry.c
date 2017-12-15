@@ -7,11 +7,7 @@
 #include "geometry.h"
 
 extern void
-matrixOfPerspective(
-        Mat4 * matrix,
-        float l, float r,
-        float b, float t,
-        float n, float f) {
+matrixOfPerspective(Mat4 * matrix, float l, float r, float b, float t, float n, float f) {
     *matrix = (Mat4) {
         2 * n / (r - l), 0, (r + l) / (r - l), 0,
         0, 2 * n / (t - b), (t + b) / (t - b), 0,

@@ -19,15 +19,12 @@ createMesh(Vec3 * positions, Vec3 * colors, GLuint * indices,
     struct Mesh mesh;
     glGenVertexArrays(1, &mesh.vao);
     glBindVertexArray(mesh.vao);
-    mesh.positionBuffer = createBuffer(
-        positions, vertexCount * sizeof(Vec3),
-        GL_ARRAY_BUFFER, GL_STATIC_DRAW);
-    mesh.colorBuffer = createBuffer(
-        colors, vertexCount * sizeof(Vec3),
-        GL_ARRAY_BUFFER, GL_STATIC_DRAW);
-    mesh.indexBuffer = createBuffer(
-        indices, indexCount * sizeof(Vec3),
-        GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW);
+    mesh.positionBuffer =
+        createBuffer(positions, vertexCount * sizeof(Vec3), GL_ARRAY_BUFFER, GL_STATIC_DRAW);
+    mesh.colorBuffer =
+        createBuffer(colors, vertexCount * sizeof(Vec3), GL_ARRAY_BUFFER, GL_STATIC_DRAW);
+    mesh.indexBuffer =
+        createBuffer(indices, indexCount * sizeof(Vec3), GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW);
     mesh.indexCount = indexCount;
     glBindBuffer(GL_ARRAY_BUFFER, mesh.positionBuffer);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);

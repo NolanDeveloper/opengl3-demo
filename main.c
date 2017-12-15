@@ -11,7 +11,10 @@
 static struct Rect {
     int width;
     int height;
-} window = { .width = 640, .height = 480 };
+} window = {
+    .width = 640,
+    .height = 480
+};
 
 static struct Mesh icosahedron;
 static struct Mesh cube;
@@ -61,10 +64,8 @@ compileShaderFile(const char * shaderFilePath, GLenum shaderType) {
 
 static GLint
 compileShader(const char * vertexShaderPath, const char * fragmentShaderPath) {
-    GLuint vertexShader =
-        compileShaderFile(vertexShaderPath, GL_VERTEX_SHADER);
-    GLuint fragmentShader =
-        compileShaderFile(fragmentShaderPath, GL_FRAGMENT_SHADER);
+    GLuint vertexShader = compileShaderFile(vertexShaderPath, GL_VERTEX_SHADER);
+    GLuint fragmentShader = compileShaderFile(fragmentShaderPath, GL_FRAGMENT_SHADER);
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
@@ -75,11 +76,13 @@ compileShader(const char * vertexShaderPath, const char * fragmentShaderPath) {
 static void
 debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
         GLsizei length, const GLchar * message, const void * userParam) {
-    // if (GL_DEBUG_SEVERITY_HIGH != severity) return;
+    if (GL_DEBUG_SEVERITY_HIGH != severity) return;
     printf("opengl log: %s\n", message);
 }
 
 static double randomDouble() { return (double)rand() / RAND_MAX; }
+
+static Vec3 randomColor() { return (Vec3) { randomDouble(), randomDouble(), randomDouble() }; }
 
 static struct Mesh
 createIcosahedron(float size) {
@@ -99,17 +102,13 @@ createIcosahedron(float size) {
             -R / 2,
             r * sin(2 * PI / 5 * i + 2 * PI / 10),
         };
-        colors[2 * i] = (Vec3) {
-            randomDouble(), randomDouble(), randomDouble()
-        };
-        colors[2 * i + 1] = (Vec3) {
-            randomDouble(), randomDouble(), randomDouble()
-        };
+        colors[2 * i] = randomColor();
+        colors[2 * i + 1] = randomColor();
     }
     positions[10] = (Vec3) { 0, R, 0 };
     positions[11] = (Vec3) { 0, -R, 0 };
-    colors[10] = (Vec3) { randomDouble(), randomDouble(), randomDouble() };
-    colors[11] = (Vec3) { randomDouble(), randomDouble(), randomDouble() };
+    colors[10] = randomColor();
+    colors[11] = randomColor();
     for (int i = 0; i < 10; i += 2) {
         indices[3 * i + 0] = (i + 1) % 10;
         indices[3 * i + 1] = (i + 2) % 10;
@@ -147,7 +146,7 @@ createCube(float size) {
     };
     Vec3 colors[8];
     for (int i = 0; i < 8; ++i) {
-        colors[i] = (Vec3) { randomDouble(), randomDouble(), randomDouble() };
+        colors[i] = randomColor();
     }
     GLuint indices[36] = {
         3, 2, 1, 3, 1, 0,
@@ -168,19 +167,13 @@ initOpengl(void) {
     glDebugMessageCallback(debugCallback, NULL);
     glClearColor(0, 0, 0, 1);
     solidShader.id = compileShader("simple.vert", "simple.frag");
-    solidShader.modelViewLocation =
-        glGetUniformLocation(solidShader.id, "modelView");
-    solidShader.projectionLocation =
-        glGetUniformLocation(solidShader.id, "projection");
+    solidShader.modelViewLocation = glGetUniformLocation(solidShader.id, "modelView");
+    solidShader.projectionLocation = glGetUniformLocation(solidShader.id, "projection");
     hatchShader.id = compileShader("simple.vert", "hatch.frag");
-    hatchShader.modelViewLocation =
-        glGetUniformLocation(hatchShader.id, "modelView");
-    hatchShader.projectionLocation =
-        glGetUniformLocation(hatchShader.id, "projection");
-    hatchShader.lineGapLocation =
-        glGetUniformLocation(hatchShader.id, "lineGap");
-    hatchShader.lineWidthLocation =
-        glGetUniformLocation(hatchShader.id, "lineWidth");
+    hatchShader.modelViewLocation = glGetUniformLocation(hatchShader.id, "modelView");
+    hatchShader.projectionLocation = glGetUniformLocation(hatchShader.id, "projection");
+    hatchShader.lineGapLocation = glGetUniformLocation(hatchShader.id, "lineGap");
+    hatchShader.lineWidthLocation = glGetUniformLocation(hatchShader.id, "lineWidth");
     icosahedron = createIcosahedron(1);
     cube = createCube(1);
     matrixOfPerspective(&projection, -1, 1, -1, 1, 1, 100);
@@ -234,52 +227,36 @@ static void
 display(void) {
     angle += 0.01;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    // Рисуем куб
     glUseProgram(hatchShader.id);
-    glUniformMatrix4fv(hatchShader.projectionLocation,
-        1, GL_TRUE, (GLfloat *)&projection);
-
     loadIdentity();
     translate(1.5, 0, -3);
     rotateY(3.1 * angle);
     rotateX(2 * angle);
-    scale(
-        fabs(sin(angle)),
-        fabs(cos(angle + 1)),
-        fabs(cos(angle + 3) * sin(angle + 2)));
-    glUniformMatrix4fv(hatchShader.modelViewLocation,
-        1, GL_TRUE, (GLfloat *)&modelView);
-    glUniform1f(hatchShader.lineGapLocation, 20);
+    scale(fabs(sin(angle)), fabs(cos(angle + 1)), fabs(cos(angle + 3) * sin(angle + 2)));
     GLfloat lineWidth = fabs(sin(angle + 1.1)) * 3 + 1;
+    glUniformMatrix4fv(hatchShader.projectionLocation, 1, GL_TRUE, (GLfloat *)&projection);
+    glUniformMatrix4fv(hatchShader.modelViewLocation, 1, GL_TRUE, (GLfloat *)&modelView);
+    glUniform1f(hatchShader.lineGapLocation, 20);
     glUniform1f(hatchShader.lineWidthLocation, lineWidth);
     drawMesh(cube);
-
+    // Рисуем икосаэдр
     glUseProgram(solidShader.id);
-    glUniformMatrix4fv(solidShader.projectionLocation,
-        1, GL_TRUE, (GLfloat *)&projection);
-
     loadIdentity();
     translate(-1.5, 0, -3);
     rotateY(3.1 * angle);
     rotateX(2 * angle);
-    scale(
-        fabs(sin(angle)),
-        fabs(cos(angle + 1)),
-        fabs(cos(angle + 3) * sin(angle + 2)));
-
-    loadIdentity();
-    translate(-1.5, 0, -3);
-    rotateY(3.1 * angle);
-    rotateX(2 * angle);
-    scale(
-        fabs(sin(angle)),
-        fabs(cos(angle + 1)),
-        fabs(cos(angle + 3) * sin(angle + 2)));
-    glUniformMatrix4fv(hatchShader.modelViewLocation,
-        1, GL_TRUE, (GLfloat *)&modelView);
+    scale(fabs(sin(angle)), fabs(cos(angle + 1)), fabs(cos(angle + 3) * sin(angle + 2)));
+    glUniformMatrix4fv(solidShader.projectionLocation, 1, GL_TRUE, (GLfloat *)&projection);
+    glUniformMatrix4fv(hatchShader.modelViewLocation, 1, GL_TRUE, (GLfloat *)&modelView);
     drawMesh(icosahedron);
-
     glutSwapBuffers();
+}
+
+static void reshape(int width, int height) {
+    window.width = width;
+    window.height = height;
+    glViewport(0, 0, width, height);
 }
 
 int main(int argc, char * argv[]) {
@@ -293,6 +270,7 @@ int main(int argc, char * argv[]) {
     glewInit();
     glutDisplayFunc(display);
     glutIdleFunc(display);
+    glutReshapeFunc(reshape);
     initOpengl();
     glutMainLoop();
 }
