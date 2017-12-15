@@ -79,10 +79,6 @@ debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
     printf("opengl log: %s\n", message);
 }
 
-static float angle = 0;
-static Mat4 modelView;
-static Mat4 projection;
-
 static double randomDouble() { return (double)rand() / RAND_MAX; }
 
 static struct Mesh
@@ -164,6 +160,8 @@ createCube(float size) {
     return createMesh(positions, colors, indices, 8, 36);
 }
 
+static Mat4 projection;
+
 static void
 initOpengl(void) {
     glEnable(GL_DEPTH_TEST);
@@ -185,8 +183,52 @@ initOpengl(void) {
         glGetUniformLocation(hatchShader.id, "lineWidth");
     icosahedron = createIcosahedron(1);
     cube = createCube(1);
-    perspective(&projection, -1, 1, -1, 1, 1, 100);
+    matrixOfPerspective(&projection, -1, 1, -1, 1, 1, 100);
 }
+
+static Mat4 modelView;
+
+static void
+loadIdentity() {
+    matrixOfIdentity(&modelView);
+}
+
+static void
+translate(float dx, float dy, float dz) {
+    Mat4 t;
+    matrixOfTranslation(&t, dx, dy, dz);
+    mulm(&modelView, &modelView, &t);
+}
+
+static void
+rotateX(float angle) {
+    Mat4 t;
+    matrixOfRotationX(&t, angle);
+    mulm(&modelView, &modelView, &t);
+}
+
+static void
+rotateY(float angle) {
+    Mat4 t;
+    matrixOfRotationY(&t, angle);
+    mulm(&modelView, &modelView, &t);
+}
+
+static void
+rotateZ(float angle) {
+    Mat4 t;
+    matrixOfRotationZ(&t, angle);
+    mulm(&modelView, &modelView, &t);
+}
+
+static void
+scale(float sx, float sy, float sz) {
+    Mat4 t;
+    matrixOfScale(&t, sx, sy, sz);
+    mulm(&modelView, &modelView, &t);
+}
+
+static float angle = 0;
 
 static void
 display(void) {
@@ -197,16 +239,14 @@ display(void) {
     glUniformMatrix4fv(hatchShader.projectionLocation,
         1, GL_TRUE, (GLfloat *)&projection);
 
-    Mat4 t;
-    identity(&modelView);
-    translation(&t, 1.5, 0, -3); mulm(&modelView, &modelView, &t);
-    rotationY(&t, 3.1 * angle);  mulm(&modelView, &modelView, &t);
-    rotationX(&t, 2 * angle);    mulm(&modelView, &modelView, &t);
-    scale(&t,
+    loadIdentity();
+    translate(1.5, 0, -3);
+    rotateY(3.1 * angle);
+    rotateX(2 * angle);
+    scale(
         fabs(sin(angle)),
         fabs(cos(angle + 1)),
         fabs(cos(angle + 3) * sin(angle + 2)));
-    mulm(&modelView, &modelView, &t);
     glUniformMatrix4fv(hatchShader.modelViewLocation,
         1, GL_TRUE, (GLfloat *)&modelView);
     glUniform1f(hatchShader.lineGapLocation, 20);
@@ -218,15 +258,23 @@ display(void) {
     glUniformMatrix4fv(solidShader.projectionLocation,
         1, GL_TRUE, (GLfloat *)&projection);
 
-    identity(&modelView);
-    translation(&t, -1.5, 0, -3); mulm(&modelView, &modelView, &t);
-    rotationY(&t, 3.1 * angle);   mulm(&modelView, &modelView, &t);
-    rotationX(&t, 2 * angle);     mulm(&modelView, &modelView, &t);
-    scale(&t,
+    loadIdentity();
+    translate(-1.5, 0, -3);
+    rotateY(3.1 * angle);
+    rotateX(2 * angle);
+    scale(
         fabs(sin(angle)),
         fabs(cos(angle + 1)),
         fabs(cos(angle + 3) * sin(angle + 2)));
-    mulm(&modelView, &modelView, &t);
+
+    loadIdentity();
+    translate(-1.5, 0, -3);
+    rotateY(3.1 * angle);
+    rotateX(2 * angle);
+    scale(
+        fabs(sin(angle)),
+        fabs(cos(angle + 1)),
+        fabs(cos(angle + 3) * sin(angle + 2)));
     glUniformMatrix4fv(hatchShader.modelViewLocation,
         1, GL_TRUE, (GLfloat *)&modelView);
     drawMesh(icosahedron);

@@ -7,7 +7,7 @@
 #include "geometry.h"
 
 extern void
-perspective(
+matrixOfPerspective(
         Mat4 * matrix,
         float l, float r,
         float b, float t,
@@ -21,7 +21,7 @@ perspective(
 }
 
 extern void
-identity(Mat4 * matrix) {
+matrixOfIdentity(Mat4 * matrix) {
     *matrix = (Mat4) {
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -31,7 +31,7 @@ identity(Mat4 * matrix) {
 }
 
 extern void
-scale(Mat4 * matrix, float sx, float sy, float sz) {
+matrixOfScale(Mat4 * matrix, float sx, float sy, float sz) {
     *matrix = (Mat4) {
         sx, 0, 0, 0,
         0, sy, 0, 0,
@@ -41,7 +41,7 @@ scale(Mat4 * matrix, float sx, float sy, float sz) {
 }
 
 extern void
-translation(Mat4 * matrix, float dx, float dy, float dz) {
+matrixOfTranslation(Mat4 * matrix, float dx, float dy, float dz) {
     *matrix = (Mat4) {
         1, 0, 0, dx,
         0, 1, 0, dy,
@@ -51,7 +51,7 @@ translation(Mat4 * matrix, float dx, float dy, float dz) {
 }
 
 extern void
-rotationX(Mat4 * matrix, float angle) {
+matrixOfRotationX(Mat4 * matrix, float angle) {
     *matrix = (Mat4) {
         1, 0, 0, 0,
         0, cos(angle), -sin(angle), 0,
@@ -61,7 +61,7 @@ rotationX(Mat4 * matrix, float angle) {
 }
 
 extern void
-rotationY(Mat4 * matrix, float angle) {
+matrixOfRotationY(Mat4 * matrix, float angle) {
     *matrix = (Mat4) {
         cos(angle), 0, sin(angle), 0,
         0, 1, 0, 0,
@@ -71,7 +71,7 @@ rotationY(Mat4 * matrix, float angle) {
 }
 
 extern void
-rotationZ(Mat4 * matrix, float angle) {
+matrixOfRotationZ(Mat4 * matrix, float angle) {
     *matrix = (Mat4) {
         cos(angle), -sin(angle), 0, 0,
         sin(angle), cos(angle), 0, 0,
