@@ -1,6 +1,9 @@
-LDFLAGS += -lm -lGL -lGLEW -lGLU -lglut -g
+CFLAGS += -g
+LDFLAGS += -lm -lGL -lGLEW -lGLU -lglut
+SOURCES += main.c geometry.c mesh.c utils.c
+OBJECTS += $(patsubst %.c, %.o, $(SOURCES))
 
-main: main.o geometry.o mesh.o
+main: $(OBJECTS)
 
 clean:
-	$(RM) main.o geometry.o mesh.o main
+	$(RM) $(OBJECTS) main
