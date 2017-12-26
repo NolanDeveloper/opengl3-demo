@@ -25,15 +25,12 @@ static GLuint texture;
 
 static struct {
     GLuint id;
+    GLuint modelViewInverseTransposeLocation;
     GLuint modelViewLocation;
     GLuint projectionLocation;
     GLuint textureLocation;
+    GLuint lightPosLocation;
 } solidShader;
-
-static GLuint modelViewLocation;
-static GLuint projectionLocation;
-static GLuint lineGapLocation;
-static GLuint lineWidthLocation;
 
 static const double PI = atan(1.) * 4.;
 
@@ -72,9 +69,12 @@ initOpengl(void) {
     glDebugMessageCallback(debugCallback, NULL);
     glClearColor(0, 0, 0, 1);
     solidShader.id = compileShader("solid.vert", "solid.frag");
+    solidShader.modelViewInverseTransposeLocation = 
+        glGetUniformLocation(solidShader.id, "modelViewInverseTranspose");
     solidShader.modelViewLocation = glGetUniformLocation(solidShader.id, "modelView");
     solidShader.projectionLocation = glGetUniformLocation(solidShader.id, "projection");
     solidShader.textureLocation = glGetUniformLocation(solidShader.id, "texture");
+    solidShader.lightPosLocation = glGetUniformLocation(solidShader.id, "lightPos");
     matrixOfPerspective(&projection, -1, 1, -1, 1, 1, 100);
     africanHead = createMeshFromObj("african_head.obj");
     int width, height, channels;
@@ -97,49 +97,55 @@ static void
 translate(float dx, float dy, float dz) {
     Mat4 t;
     matrixOfTranslation(&t, dx, dy, dz);
-    mulm(&modelView, &modelView, &t);
+    matrixMultiplymm(&modelView, &modelView, &t);
 }
 
 static void
 rotateX(float angle) {
     Mat4 t;
     matrixOfRotationX(&t, angle);
-    mulm(&modelView, &modelView, &t);
+    matrixMultiplymm(&modelView, &modelView, &t);
 }
 
 static void
 rotateY(float angle) {
     Mat4 t;
     matrixOfRotationY(&t, angle);
-    mulm(&modelView, &modelView, &t);
+    matrixMultiplymm(&modelView, &modelView, &t);
 }
 
 static void
 rotateZ(float angle) {
     Mat4 t;
     matrixOfRotationZ(&t, angle);
-    mulm(&modelView, &modelView, &t);
+    matrixMultiplymm(&modelView, &modelView, &t);
 }
 
 static void
 scale(float sx, float sy, float sz) {
     Mat4 t;
     matrixOfScale(&t, sx, sy, sz);
-    mulm(&modelView, &modelView, &t);
+    matrixMultiplymm(&modelView, &modelView, &t);
 }
 
 static float angle = 0;
 
 static void
 display(void) {
-    angle += 0.001;
+    angle += 0.01;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     loadIdentity();
     translate(0, 0, -1.8);
-    rotateY(angle);
+    // rotateY(angle);
     glUseProgram(solidShader.id);
     glUniformMatrix4fv(solidShader.projectionLocation, 1, GL_TRUE, (GLfloat *)&projection);
     glUniformMatrix4fv(solidShader.modelViewLocation, 1, GL_TRUE, (GLfloat *)&modelView);
+    Mat4 modelViewInverseTranspose;
+    matrixInverse(&modelViewInverseTranspose, &modelView);
+    matrixTranspose(&modelViewInverseTranspose, &modelViewInverseTranspose);
+    glUniformMatrix4fv(solidShader.modelViewInverseTransposeLocation, 1, GL_TRUE, 
+        (GLfloat *)&modelViewInverseTranspose);
+    glUniform3f(solidShader.lightPosLocation, 5 * cos(angle), 0, -1.8 + 5 * sin(angle));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(solidShader.textureLocation, 0);

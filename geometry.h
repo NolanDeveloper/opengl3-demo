@@ -19,4 +19,7 @@ extern void matrixOfRotationX(Mat4 * matrix, float angle);
 extern void matrixOfRotationY(Mat4 * matrix, float angle);
 extern void matrixOfRotationZ(Mat4 * matrix, float angle);
 
-extern void mulm(Mat4 * out, Mat4 * a, Mat4 * b);
+extern void matrixMultiplymm(Mat4 * out, Mat4 * a, Mat4 * b);
+
+extern void matrixTranspose(Mat4 * out, Mat4 * in);
+extern int matrixInverse(Mat4 * out, Mat4 * in);
