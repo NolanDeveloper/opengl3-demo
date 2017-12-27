@@ -15,52 +15,49 @@ drawMesh(struct Mesh mesh) {
     glDrawArrays(GL_TRIANGLES, 0, mesh.numberOfVertices);
 }
 
-static char * fileContent;
-static unsigned long currentLine;
-static unsigned long currentColumn;
-static unsigned long currentOffset;
-static unsigned long oldLine;
-static unsigned long oldColumn;
-static unsigned long oldOffset;
+struct FilePosition {
+    unsigned long line;
+    unsigned long column;
+    unsigned long offset;
+};
 
-#define peekChar() (fileContent[currentOffset])
+static char * fileContent;
+static struct FilePosition currentPosition, oldPosition;
+
+#define peekChar() (fileContent[currentPosition.offset])
 
 static void
 error(void) {
-    printf("Oh shi at %d:%d...\n", currentLine, currentColumn);
+    printf("Error at %ld:%ld...\n", currentPosition.line, currentPosition.column);
     exit(1);
 }
 
 static void
 consumeChar(void) {
     if (!peekChar()) error();
-    ++currentColumn;
+    ++currentPosition.column;
     if ('\n' == peekChar()) {
-        ++currentLine;
-        currentColumn = 0;
+        ++currentPosition.line;
+        currentPosition.column = 0;
     }
-    ++currentOffset;
+    ++currentPosition.offset;
 }
 
 static void 
 rememberPosition(void) {
-    oldOffset = currentOffset;
-    oldLine = currentLine;
-    oldColumn = currentColumn;
+    oldPosition = currentPosition;
 }
 
 static void 
 restorePosition(void) {
-    currentOffset = oldOffset;
-    currentLine = oldLine;
-    currentColumn = oldColumn;
+    currentPosition = oldPosition;
 }
 
 static void
 reset(void) {
-    currentOffset = 0;
-    currentLine = 0;
-    currentColumn = 0;
+    currentPosition.offset = 0;
+    currentPosition.line = 0;
+    currentPosition.column = 0;
 }
 
 struct VertexAttributeIndices {
@@ -74,7 +71,8 @@ struct Face {
     unsigned numberOfVertices;
 };
 
-#define skipSpaces() do { while (isspace(peekChar()) && '\n' != peekChar()) consumeChar(); } while (0)
+#define skipSpaces() \
+    do { while (isspace(peekChar()) && '\n' != peekChar()) consumeChar(); } while (0)
 
 static void
 skipSpacesAndComments(void) {
@@ -89,7 +87,7 @@ skipSpacesAndComments(void) {
 static int
 accept(const char * line) {
     int n = strlen(line);
-    int result = strncmp(&fileContent[currentOffset], line, n);
+    int result = strncmp(&fileContent[currentPosition.offset], line, n);
     if (!result) for (int i = 0; i < n; ++i) consumeChar();
     return result;
 }
@@ -98,10 +96,10 @@ static int
 parseFloat(GLfloat * out) {
     skipSpaces();
     char * endptr;
-    char * beginptr = &fileContent[currentOffset];
+    char * beginptr = &fileContent[currentPosition.offset];
     GLfloat t = (GLfloat)strtof(beginptr, &endptr);
     if (out) *out = t;
-    currentOffset += endptr - beginptr;
+    currentPosition.offset += endptr - beginptr;
     return endptr == beginptr;
 }
 
@@ -109,15 +107,15 @@ static int
 parseUnsignedLong(unsigned long * out) {
     skipSpaces();
     char * endptr;
-    char * beginptr = &fileContent[currentOffset];
+    char * beginptr = &fileContent[currentPosition.offset];
     unsigned long t = strtoul(beginptr, &endptr, 10);
     if (out) *out = t;
-    currentOffset += endptr - beginptr;
+    currentPosition.offset += endptr - beginptr;
     return endptr == beginptr;
 }
 
 static int 
-parsePosition(Vec3 * out) {
+parsePosition(GLfloat * out) {
     GLfloat x, y, z, w;
     skipSpacesAndComments();
     if (accept("v ")) return 1;
@@ -128,32 +126,31 @@ parsePosition(Vec3 * out) {
     if (!w) error();
     if (accept("\n")) error();
     if (out) {
-        out->x = x / w;
-        out->y = y / w;
-        out->z = z / w;
+        out[0] = x / w;
+        out[1] = y / w;
+        out[2] = z / w;
     }
     return 0;
 }
 
 static int 
-parseTextureCoordinate(Vec3 * out) {
+parseTextureCoordinate(GLfloat * out) {
     skipSpacesAndComments();
     if (accept("vt ")) return 1;
-    if (parseFloat(out ? &out->x : NULL)) error();
-    if (parseFloat(out ? &out->y : NULL)) error();
+    if (parseFloat(out ? &out[0] : NULL)) error();
+    if (parseFloat(out ? &out[1] : NULL)) error();
     parseFloat(NULL);
     if (accept("\n")) error();
     return 0;
 }
 
 static int
-parseNormal(Vec3 * out) {
-    GLfloat x, y, z;
+parseNormal(GLfloat * out) {
     skipSpacesAndComments();
     if (accept("vn ")) return 1;
-    if (parseFloat(out ? &out->x : NULL)) error();
-    if (parseFloat(out ? &out->y : NULL)) error();
-    if (parseFloat(out ? &out->z : NULL)) error();
+    if (parseFloat(out ? &out[0] : NULL)) error();
+    if (parseFloat(out ? &out[1] : NULL)) error();
+    if (parseFloat(out ? &out[2] : NULL)) error();
     if (accept("\n")) error();
     return 0;
 }
@@ -171,9 +168,9 @@ parseVertexAttributeIndices(struct VertexAttributeIndices * out) {
         }
     } 
     if (out) {
-        out->indexOfPosition = position - 1;
+        out->indexOfPosition          = position - 1;
         out->indexOfTextureCoordinate = textureCoordinate - 1;
-        out->indexOfNormal = normal - 1;
+        out->indexOfNormal            = normal - 1;
     }
     return 0;
 }
@@ -215,35 +212,35 @@ createMeshFromObj(char * filepath) {
     while (!parseNormal(NULL))            ++numberOfNormals;
     while (!parseFace(NULL))              ++numberOfFaces;
     reset();
-    Vec3 * positions          = emalloc(numberOfPositions          * sizeof(Vec3));
-    Vec3 * textureCoordinates = emalloc(numberOfTextureCoordinates * sizeof(Vec3));
-    Vec3 * normals            = emalloc(numberOfNormals            * sizeof(Vec3));
-    struct Face * faces       = emalloc(numberOfFaces              * sizeof(struct Face));
-    for (int i = 0; !parsePosition(&positions[i]);                   ++i);
-    for (int i = 0; !parseTextureCoordinate(&textureCoordinates[i]); ++i);
-    for (int i = 0; !parseNormal(&normals[i]);                       ++i);
+    GLfloat (*positions)[3]          = emalloc(numberOfPositions          * sizeof(GLfloat[3]));
+    GLfloat (*textureCoordinates)[3] = emalloc(numberOfTextureCoordinates * sizeof(GLfloat[3]));
+    GLfloat (*normals)[3]            = emalloc(numberOfNormals            * sizeof(GLfloat[3]));
+    struct Face * faces              = emalloc(numberOfFaces              * sizeof(struct Face));
+    for (int i = 0; !parsePosition((GLfloat *)&positions[i]);                   ++i);
+    for (int i = 0; !parseTextureCoordinate((GLfloat *)&textureCoordinates[i]); ++i);
+    for (int i = 0; !parseNormal((GLfloat *)&normals[i]);                       ++i);
     unsigned long numberOfTriangles = 0;
     for (int i = 0; !parseFace(&faces[i]); ++i) {
         numberOfTriangles += faces[i].numberOfVertices - 2;
     }
     unsigned long numberOfVertices = numberOfTriangles * 3;
-    size_t bufferSize = numberOfVertices * sizeof(Vec3);
-    Vec3 * p, * t, * n;
-    Vec3 * positionsBufferData          = p = emalloc(bufferSize);
-    Vec3 * textureCoordinatesBufferData = t = emalloc(bufferSize);
-    Vec3 * normalsBufferData            = n = emalloc(bufferSize);
-    for (int i = 0; i < numberOfFaces; ++i) {
+    size_t bufferSize = numberOfVertices * sizeof(GLfloat[3]);
+    GLfloat (*p)[3], (*t)[3], (*n)[3];
+    GLfloat (*positionsBufferData)[3]          = p = emalloc(bufferSize);
+    GLfloat (*textureCoordinatesBufferData)[3] = t = emalloc(bufferSize);
+    GLfloat (*normalsBufferData)[3]            = n = emalloc(bufferSize);
+    for (unsigned long i = 0; i < numberOfFaces; ++i) {
         struct VertexAttributeIndices * vertices = faces[i].vertices;
-        for (int j = 1; j < faces[i].numberOfVertices - 1; ++j) {
-            *p++ = positions[vertices[0].indexOfPosition];
-            *p++ = positions[vertices[j].indexOfPosition];
-            *p++ = positions[vertices[j + 1].indexOfPosition];
-            *t++ = textureCoordinates[vertices[0].indexOfTextureCoordinate];
-            *t++ = textureCoordinates[vertices[j].indexOfTextureCoordinate];
-            *t++ = textureCoordinates[vertices[j + 1].indexOfTextureCoordinate];
-            *n++ = normals[vertices[0].indexOfNormal];
-            *n++ = normals[vertices[j].indexOfNormal];
-            *n++ = normals[vertices[j + 1].indexOfNormal];
+        for (unsigned long j = 1; j < faces[i].numberOfVertices - 1; ++j) {
+            memcpy(p++, &positions[vertices[0].indexOfPosition], sizeof(GLfloat[3]));
+            memcpy(p++, &positions[vertices[j].indexOfPosition], sizeof(GLfloat[3]));
+            memcpy(p++, &positions[vertices[j + 1].indexOfPosition], sizeof(GLfloat[3]));
+            memcpy(t++, &textureCoordinates[vertices[0].indexOfTextureCoordinate], sizeof(GLfloat[3]));
+            memcpy(t++, &textureCoordinates[vertices[j].indexOfTextureCoordinate], sizeof(GLfloat[3]));
+            memcpy(t++, &textureCoordinates[vertices[j + 1].indexOfTextureCoordinate], sizeof(GLfloat[3]));
+            memcpy(n++, &normals[vertices[0].indexOfNormal], sizeof(GLfloat[3]));
+            memcpy(n++, &normals[vertices[j].indexOfNormal], sizeof(GLfloat[3]));
+            memcpy(n++, &normals[vertices[j + 1].indexOfNormal], sizeof(GLfloat[3]));
         }
     }
     struct Mesh mesh;
@@ -265,7 +262,7 @@ createMeshFromObj(char * filepath) {
     free(positions);
     free(textureCoordinates);
     free(normals);
-    for (int i = 0; i < numberOfFaces; ++i) {
+    for (unsigned long i = 0; i < numberOfFaces; ++i) {
         free(faces[i].vertices);
     }
     free(faces);

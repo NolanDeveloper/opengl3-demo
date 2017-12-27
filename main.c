@@ -32,7 +32,7 @@ static struct {
     GLuint lightPosLocation;
 } solidShader;
 
-static const double PI = atan(1.) * 4.;
+#define PI (atan(1.) * 4.)
 
 static GLuint
 compileShaderFile(const char * shaderFilePath, GLenum shaderType) {
@@ -57,11 +57,13 @@ compileShader(const char * vertexShaderPath, const char * fragmentShaderPath) {
 static void
 debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
         GLsizei length, const GLchar * message, const void * userParam) {
+    (void)source, (void)type, (void)id, (void)length, (void)userParam;
     if (GL_DEBUG_SEVERITY_HIGH != severity) return;
     printf("opengl log: %s\n", message);
 }
 
-static Mat4 projection;
+static GLfloat modelView[16];
+static GLfloat projection[16];
 
 static void
 initOpengl(void) {
@@ -75,10 +77,10 @@ initOpengl(void) {
     solidShader.projectionLocation = glGetUniformLocation(solidShader.id, "projection");
     solidShader.textureLocation = glGetUniformLocation(solidShader.id, "texture");
     solidShader.lightPosLocation = glGetUniformLocation(solidShader.id, "lightPos");
-    matrixOfPerspective(&projection, -1, 1, -1, 1, 1, 100);
+    matrixOfPerspective(projection, -1, 1, -1, 1, 1, 100);
     africanHead = createMeshFromObj("african_head.obj");
     int width, height, channels;
-    GLchar * data = stbi_load("african_head_diffuse.tga", &width, &height, &channels, 3);
+    GLchar * data = (GLchar *)stbi_load("african_head_diffuse.tga", &width, &height, &channels, 3);
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -86,49 +88,51 @@ initOpengl(void) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
-static Mat4 modelView;
-
 static void
 loadIdentity() {
-    matrixOfIdentity(&modelView);
+    matrixOfIdentity(modelView);
 }
 
 static void
-translate(float dx, float dy, float dz) {
-    Mat4 t;
-    matrixOfTranslation(&t, dx, dy, dz);
-    matrixMultiplymm(&modelView, &modelView, &t);
+translate(GLfloat dx, GLfloat dy, GLfloat dz) {
+    GLfloat t[16];
+    matrixOfTranslation(t, dx, dy, dz);
+    matrixMultiplymm(modelView, modelView, t);
+}
+
+#if 0
+
+static void
+rotateX(GLfloat angle) {
+    GLfloat t[16];
+    matrixOfRotationX(t, angle);
+    matrixMultiplymm(modelView, modelView, t);
 }
 
 static void
-rotateX(float angle) {
-    Mat4 t;
-    matrixOfRotationX(&t, angle);
-    matrixMultiplymm(&modelView, &modelView, &t);
+rotateY(GLfloat angle) {
+    GLfloat t[16];
+    matrixOfRotationY(t, angle);
+    matrixMultiplymm(modelView, modelView, t);
 }
 
 static void
-rotateY(float angle) {
-    Mat4 t;
-    matrixOfRotationY(&t, angle);
-    matrixMultiplymm(&modelView, &modelView, &t);
+rotateZ(GLfloat angle) {
+    GLfloat t[16];
+    matrixOfRotationZ(t, angle);
+    matrixMultiplymm(modelView, modelView, t);
 }
 
 static void
-rotateZ(float angle) {
-    Mat4 t;
-    matrixOfRotationZ(&t, angle);
-    matrixMultiplymm(&modelView, &modelView, &t);
+scale(GLfloat sx, GLfloat sy, GLfloat sz) {
+    GLfloat t[16];
+    matrixOfScale(t, sx, sy, sz);
+    matrixMultiplymm(modelView, modelView, t);
 }
 
-static void
-scale(float sx, float sy, float sz) {
-    Mat4 t;
-    matrixOfScale(&t, sx, sy, sz);
-    matrixMultiplymm(&modelView, &modelView, &t);
-}
+#endif
 
-static float angle = 0;
+static GLfloat angle = 0;
 
 static void
 display(void) {
@@ -136,15 +140,14 @@ display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     loadIdentity();
     translate(0, 0, -1.8);
-    // rotateY(angle);
     glUseProgram(solidShader.id);
-    glUniformMatrix4fv(solidShader.projectionLocation, 1, GL_TRUE, (GLfloat *)&projection);
-    glUniformMatrix4fv(solidShader.modelViewLocation, 1, GL_TRUE, (GLfloat *)&modelView);
-    Mat4 modelViewInverseTranspose;
-    matrixInverse(&modelViewInverseTranspose, &modelView);
-    matrixTranspose(&modelViewInverseTranspose, &modelViewInverseTranspose);
+    glUniformMatrix4fv(solidShader.projectionLocation, 1, GL_TRUE, projection);
+    glUniformMatrix4fv(solidShader.modelViewLocation, 1, GL_TRUE, modelView);
+    GLfloat modelViewInverseTranspose[16];
+    matrixInverse(modelViewInverseTranspose, modelView);
+    matrixTranspose(modelViewInverseTranspose, modelViewInverseTranspose);
     glUniformMatrix4fv(solidShader.modelViewInverseTransposeLocation, 1, GL_TRUE, 
-        (GLfloat *)&modelViewInverseTranspose);
+        modelViewInverseTranspose);
     glUniform3f(solidShader.lightPosLocation, 2 * cos(angle), 0, -1.8 + 2 * sin(angle));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -153,7 +156,8 @@ display(void) {
     glutSwapBuffers();
 }
 
-static void reshape(int width, int height) {
+static void 
+reshape(int width, int height) {
     window.width = width;
     window.height = height;
     glViewport(0, 0, width, height);

@@ -1,25 +1,19 @@
-typedef struct {
-    GLfloat x, y, z;
-} Vec3;
+/* extern void matrixOfCamera(Mat4 * matrix, Vec3 eye, Vec3 center, Vec3 up); */
 
-typedef struct {
-    GLfloat data[4][4];
-} Mat4;
+extern void matrixOfPerspective(GLfloat * matrix,
+    GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
 
-extern void matrixOfPerspective(Mat4 * matrix,
-    float l, float r, float b, float t, float n, float f);
+extern void matrixOfIdentity(GLfloat * matrix);
 
-extern void matrixOfIdentity(Mat4 * matrix);
+extern void matrixOfScale(GLfloat * matrix, GLfloat sx, GLfloat sy, GLfloat sz);
 
-extern void matrixOfScale(Mat4 * matrix, float sx, float sy, float sz);
+extern void matrixOfTranslation(GLfloat * matrix, GLfloat dx, GLfloat dy, GLfloat dz);
 
-extern void matrixOfTranslation(Mat4 * matrix, float dx, float dy, float dz);
+extern void matrixOfRotationX(GLfloat * matrix, GLfloat angle);
+extern void matrixOfRotationY(GLfloat * matrix, GLfloat angle);
+extern void matrixOfRotationZ(GLfloat * matrix, GLfloat angle);
 
-extern void matrixOfRotationX(Mat4 * matrix, float angle);
-extern void matrixOfRotationY(Mat4 * matrix, float angle);
-extern void matrixOfRotationZ(Mat4 * matrix, float angle);
+extern void matrixMultiplymm(GLfloat * out, GLfloat * a, GLfloat * b);
 
-extern void matrixMultiplymm(Mat4 * out, Mat4 * a, Mat4 * b);
-
-extern void matrixTranspose(Mat4 * out, Mat4 * in);
-extern int matrixInverse(Mat4 * out, Mat4 * in);
+extern void matrixTranspose(GLfloat * out, GLfloat * in);
+extern int matrixInverse(GLfloat * out, GLfloat * in);
