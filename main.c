@@ -145,7 +145,7 @@ display(void) {
     matrixTranspose(&modelViewInverseTranspose, &modelViewInverseTranspose);
     glUniformMatrix4fv(solidShader.modelViewInverseTransposeLocation, 1, GL_TRUE, 
         (GLfloat *)&modelViewInverseTranspose);
-    glUniform3f(solidShader.lightPosLocation, 5 * cos(angle), 0, -1.8 + 5 * sin(angle));
+    glUniform3f(solidShader.lightPosLocation, 2 * cos(angle), 0, -1.8 + 2 * sin(angle));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(solidShader.textureLocation, 0);

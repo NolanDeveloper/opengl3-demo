@@ -17,7 +17,7 @@ void main() {
     vec4 worldPosition = modelView * vec4(position, 1);
     gl_Position = projection * worldPosition;
     float d = length(worldPosition);
-    fragmentPosition = gl_Position.xyz / gl_Position.z;
+    fragmentPosition = gl_Position.xyz / gl_Position.w;
     fragmentColor = texture(tex, vec2(textureCoordiante.x, 1 - textureCoordiante.y)) / d;
     fragmentNormal = (modelViewInverseTranspose * vec4(normal, 1)).xyz;
 }
