@@ -12,6 +12,7 @@
 extern void
 drawMesh(struct Mesh mesh) {
     glBindVertexArray(mesh.vao);
+    glBindTexture(GL_TEXTURE_2D, mesh.texture);
     glDrawArrays(GL_TRIANGLES, 0, mesh.numberOfVertices);
 }
 
@@ -201,8 +202,9 @@ createBuffer(void * data, size_t size) {
 }
 
 extern struct Mesh 
-createMeshFromObj(char * filepath) {
+createMeshFromObj(char * filepath, GLuint texture) {
     fileContent = loadFile(filepath);
+    reset();
     unsigned long numberOfPositions          = 0;
     unsigned long numberOfTextureCoordinates = 0;
     unsigned long numberOfNormals            = 0;
@@ -246,10 +248,18 @@ createMeshFromObj(char * filepath) {
     struct Mesh mesh;
     glGenVertexArrays(1, &mesh.vao);
     glBindVertexArray(mesh.vao);
+    mesh.texture                  = texture;
     mesh.numberOfVertices         = numberOfVertices;
     mesh.positionsBuffer          = createBuffer(positionsBufferData, bufferSize);
     mesh.textureCoordinatesBuffer = createBuffer(textureCoordinatesBufferData, bufferSize);
     mesh.normalsBuffer            = createBuffer(normalsBufferData, bufferSize);
+    struct Material material = {
+        .ambient = { 0.2, 0.2, 0.2 },
+        .diffuse = { 0.6, 0.6, 0.6 },
+        .specular = { 0.8, 0.8, 0.8 },
+        .shininess = 100,
+    };
+    mesh.material = material;
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);

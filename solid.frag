@@ -1,32 +1,62 @@
 #version 330 core
 
-uniform vec3 lightPos;
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
 
-in vec3 fragmentPosition;
-in vec4 fragmentColor;
-in vec3 fragmentNormal;
+uniform Material material;
+uniform sampler2D tex;
 
-vec3 ambientColor = vec3(0.2);
-vec3 diffuseColor = vec3(0.6);
-vec3 specularColor = vec3(0.8);
-vec3 lightColor = vec3(1);
-float shininess = 10;
+in vec3 normal;
+in vec3 toLight;
+in vec3 toCamera;
+in vec2 texcoords;
 
-void main() {
-    vec3 normal = -normalize(fragmentNormal);
-    vec3 lightDir = lightPos - fragmentPosition;
-    float distance = length(lightDir);
-    distance *= distance;
-    lightDir = normalize(lightDir);
-    float lambertian = max(dot(lightDir, normal), 0.0);
-    float specular = 0.0;
-    if(lambertian > 0.0) {
-        vec3 viewDir = normalize(-fragmentPosition);
-        vec3 halfDir = normalize(lightDir + viewDir);
-        float specAngle = max(dot(halfDir, normal), 0.0);
-        specular = pow(specAngle, shininess);
-    }
-    vec3 colorLinear = ambientColor + 
-        (diffuseColor * lambertian + specularColor * specular) * lightColor;
-    gl_FragColor = fragmentColor * vec4(colorLinear, 1.0);
+out vec4 resultingColor;
+
+Material light = Material(vec3(1, 1, 1), vec3(1, 1, 1), vec3(1, 1, 1), 0);
+
+// returns intensity of reflected ambient lighting
+vec3 ambientLighting() {
+   return material.ambient * light.ambient;
 }
+
+// returns intensity of diffuse reflection
+vec3 diffuseLighting(in vec3 N, in vec3 L) {
+   // calculation as for Lambertian reflection
+   float diffuseTerm = clamp(dot(N, L), 0, 1) ;
+   return material.diffuse * light.diffuse * diffuseTerm;
+}
+
+// returns intensity of specular reflection
+vec3 specularLighting(in vec3 N, in vec3 L, in vec3 V) {
+   float specularTerm = 0;
+   // calculate specular reflection only if
+   // the surface is oriented to the light source
+   if(dot(N, L) > 0)
+   {
+      // half vector
+      vec3 H = normalize(L + V);
+      specularTerm = pow(dot(N, H), material.shininess);
+   }
+   return material.specular * light.specular * specularTerm;
+}
+
+void main(void) {
+   // normalize vectors after interpolation
+   vec3 L = normalize(toLight);
+   vec3 V = normalize(toCamera);
+   vec3 N = normalize(normal);
+   // get Blinn-Phong reflectance components
+   vec3 Iamb = ambientLighting();
+   vec3 Idif = diffuseLighting(N, L);
+   vec3 Ispe = specularLighting(N, L, V);
+   // diffuse color of the object from texture
+   vec3 diffuseColor = texture(tex, vec2(texcoords.x, 1 - texcoords.y)).rgb;
+   // combination of all components and diffuse color of the object
+   resultingColor.xyz = diffuseColor * (Iamb + Idif + Ispe);
+   resultingColor.a = 1;
+} 
